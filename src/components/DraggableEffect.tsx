@@ -46,7 +46,7 @@ export default function DraggableEffect({
         style={style}
         {...listeners}
         {...attributes}
-        className={`p-3 border border-gray-200 rounded-lg bg-white hover:border-purple-300 transition-colors cursor-grab active:cursor-grabbing ${
+        className={`p-3 border border-gray-200 rounded-lg bg-white hover:border-purple-300 transition-colors cursor-grab active:cursor-grabbing select-none touch-manipulation ${
           isDragging ? 'opacity-50' : 'opacity-100'
         }`}
       >
@@ -69,7 +69,7 @@ export default function DraggableEffect({
         style={style}
         {...listeners}
         {...attributes}
-        className={`p-3 border border-green-200 rounded-lg bg-green-50 hover:border-green-300 transition-colors cursor-grab active:cursor-grabbing ${
+        className={`p-3 border border-green-200 rounded-lg bg-green-50 hover:border-green-300 transition-colors cursor-grab active:cursor-grabbing select-none touch-manipulation ${
           isDragging ? 'opacity-50' : 'opacity-100'
         }`}
       >

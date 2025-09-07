@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { Board, Effect, EffectPosition } from '../types';
 
 interface BoardCanvasProps {
@@ -28,44 +28,53 @@ export default function BoardCanvas({
 }: BoardCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const [dragging, setDragging] = useState<{
     effectId: string;
     offsetX: number;
     offsetY: number;
   } | null>(null);
 
-  // mm to px 変換
+  // mm to px 変換 - メモ化で最適化
   const mmToPx = useCallback((mm: number) => mm * MM_TO_PX_RATIO * scale, [scale]);
   
-  // px to mm 変換
+  // px to mm 変換 - メモ化で最適化
   const pxToMm = useCallback((px: number) => px / (MM_TO_PX_RATIO * scale), [scale]);
 
-  // キャンバス描画
-  const drawCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  // キャンバスサイズの計算結果をメモ化
+  const canvasSize = useMemo(() => ({
+    width: mmToPx(board.width_mm),
+    height: mmToPx(board.height_mm),
+  }), [board.width_mm, board.height_mm, mmToPx]);
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // キャンバスサイズ設定
-    const boardWidthPx = mmToPx(board.width_mm);
-    const boardHeightPx = mmToPx(board.height_mm);
+  // requestAnimationFrameを使用した最適化された描画関数
+  const scheduleDrawCanvas = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
     
-    canvas.width = boardWidthPx;
-    canvas.height = boardHeightPx;
+    animationFrameRef.current = requestAnimationFrame(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    // 背景クリア
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-    // ペダルボード背景描画
-    ctx.fillStyle = '#2D3748'; // グレー系の背景色
-    ctx.fillRect(0, 0, boardWidthPx, boardHeightPx);
+      // キャンバスサイズ設定 - メモ化された値を使用
+      canvas.width = canvasSize.width;
+      canvas.height = canvasSize.height;
 
-    // ペダルボード枠線
-    ctx.strokeStyle = '#4A5568';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(1, 1, boardWidthPx - 2, boardHeightPx - 2);
+      // 背景クリア
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // ペダルボード背景描画
+      ctx.fillStyle = '#2D3748'; // グレー系の背景色
+      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+
+      // ペダルボード枠線
+      ctx.strokeStyle = '#4A5568';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(1, 1, canvasSize.width - 2, canvasSize.height - 2);
 
     // グリッド描画
     if (showGrid) {
@@ -75,27 +84,27 @@ export default function BoardCanvas({
       
       const gridSizePx = mmToPx(GRID_SIZE_MM);
       
-      // 縦線
-      for (let x = gridSizePx; x < boardWidthPx; x += gridSizePx) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, boardHeightPx);
-        ctx.stroke();
-      }
-      
-      // 横線
-      for (let y = gridSizePx; y < boardHeightPx; y += gridSizePx) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(boardWidthPx, y);
-        ctx.stroke();
-      }
+        // 縦線
+        for (let x = gridSizePx; x < canvasSize.width; x += gridSizePx) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvasSize.height);
+          ctx.stroke();
+        }
+        
+        // 横線
+        for (let y = gridSizePx; y < canvasSize.height; y += gridSizePx) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvasSize.width, y);
+          ctx.stroke();
+        }
       
       ctx.setLineDash([]); // 破線リセット
     }
 
-    // エフェクター描画
-    effects.forEach((effect) => {
+      // エフェクター描画 - 最適化されたレンダリング
+      effects.forEach((effect) => {
       const x = mmToPx(effect.position.x);
       const y = mmToPx(effect.position.y);
       const width = mmToPx(effect.width_mm);
@@ -130,16 +139,17 @@ export default function BoardCanvas({
         displayName += '...';
       }
       
-      ctx.fillText(displayName, x + width / 2, y + height / 2);
-    });
+        ctx.fillText(displayName, x + width / 2, y + height / 2);
+      });
 
-    // ボードサイズ表示
-    ctx.fillStyle = '#A0AEC0';
-    ctx.font = `${Math.max(10, mmToPx(2.5))}px Arial`;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText(`${board.name} (${board.width_mm} × ${board.height_mm} mm)`, 10, 10);
-  }, [board, effects, showGrid, selectedEffectId, mmToPx]);
+      // ボードサイズ表示
+      ctx.fillStyle = '#A0AEC0';
+      ctx.font = `${Math.max(10, mmToPx(2.5))}px Arial`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(`${board.name} (${board.width_mm} × ${board.height_mm} mm)`, 10, 10);
+    });
+  }, [board, effects, showGrid, selectedEffectId, mmToPx, canvasSize]);
 
   // マウスイベント処理
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -206,10 +216,19 @@ export default function BoardCanvas({
     setDragging(null);
   }, []);
 
-  // キャンバス描画更新
+  // キャンバス描画更新 - requestAnimationFrame使用
   useEffect(() => {
-    drawCanvas();
-  }, [drawCanvas]);
+    scheduleDrawCanvas();
+  }, [scheduleDrawCanvas]);
+
+  // コンポーネントアンマウント時のクリーンアップ
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
 
   // レスポンシブ対応
   const containerStyle = {
