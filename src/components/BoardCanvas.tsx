@@ -139,7 +139,7 @@ export default function BoardCanvas({
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillText(`${board.name} (${board.width_mm} × ${board.height_mm} mm)`, 10, 10);
-  }, [board, effects, scale, showGrid, selectedEffectId, mmToPx]);
+  }, [board, effects, showGrid, selectedEffectId, mmToPx]);
 
   // マウスイベント処理
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {

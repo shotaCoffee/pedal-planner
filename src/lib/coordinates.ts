@@ -25,6 +25,37 @@ export function snapToGrid(coord: number, gridSizeMm: number): number {
   return Math.round(coord / gridSizeMm) * gridSizeMm;
 }
 
+// 高度なスナップ機能（境界チェック付き）
+export function snapToGridEnhanced(
+  x: number, 
+  y: number, 
+  gridSize: number = 5,
+  effectSize: { width: number; height: number },
+  boardSize: { width: number; height: number },
+  rotation: number = 0
+): { x: number; y: number; snapped: boolean } {
+  const snappedX = snapToGrid(x, gridSize);
+  const snappedY = snapToGrid(y, gridSize);
+  
+  // 境界チェック
+  const isValid = checkBounds(
+    snappedX, 
+    snappedY, 
+    effectSize.width, 
+    effectSize.height, 
+    boardSize.width, 
+    boardSize.height, 
+    rotation
+  );
+  
+  if (isValid) {
+    return { x: snappedX, y: snappedY, snapped: true };
+  } else {
+    // スナップできない場合は元の座標を返す
+    return { x, y, snapped: false };
+  }
+}
+
 // 境界チェック（エフェクターがボード内に収まるかチェック）
 export function checkBounds(
   x: number, 

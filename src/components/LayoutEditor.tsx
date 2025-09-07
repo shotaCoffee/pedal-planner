@@ -2,8 +2,21 @@
 
 import { useState, useCallback } from 'react';
 import { Save, ZoomIn, ZoomOut, Grid3x3 } from 'lucide-react';
+import {
+  DndContext,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+  useSensors,
+  useSensor,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+} from '@dnd-kit/core';
 import { Layout, Board, Effect, LayoutData, EffectPosition } from '../types';
-import BoardCanvas from './BoardCanvas';
+import DroppableBoard from './DroppableBoard';
+import DraggableEffect from './DraggableEffect';
+import { snapToGridEnhanced } from '../lib/coordinates';
 
 interface LayoutEditorProps {
   layout: Layout;
@@ -23,6 +36,15 @@ export default function LayoutEditor({
   const [showGrid, setShowGrid] = useState<boolean>(true);
   const [selectedEffectId, setSelectedEffectId] = useState<string>('');
   const [saving, setSaving] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [snapToGrid, setSnapToGrid] = useState<boolean>(true);
+  const [gridSize, setGridSize] = useState<number>(5); // 1, 5, 10mm
+
+  // @dnd-kit sensors setup
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor)
+  );
 
   // エフェクター選択ハンドラ
   const handleEffectSelect = useCallback((effectId: string) => {
@@ -78,6 +100,20 @@ export default function LayoutEditor({
     }));
   }, []);
 
+  // エフェクター回転ハンドラ
+  const handleEffectRotate = useCallback((effectId: string) => {
+    setCurrentLayoutData(prev => ({
+      ...prev,
+      effects: prev.effects.map(e => {
+        if (e.effect_id === effectId) {
+          const newRotation = ((e.rotation || 0) + 90) % 360;
+          return { ...e, rotation: newRotation as 0 | 90 | 180 | 270 };
+        }
+        return e;
+      })
+    }));
+  }, []);
+
   // ズーム操作
   const handleZoomIn = useCallback(() => {
     setScale(prev => Math.min(prev + 0.1, 2.0));
@@ -90,6 +126,71 @@ export default function LayoutEditor({
   const handleZoomReset = useCallback(() => {
     setScale(1.0);
   }, []);
+
+  // @dnd-kit drag handlers
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  }, []);
+
+  const handleDragOver = useCallback(() => {
+    // ドラッグオーバー処理（必要に応じて実装）
+  }, []);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over, delta } = event;
+    setActiveId(null);
+
+    if (!over) return;
+
+    // パレットからボードへのドロップ
+    if (active.data.current?.type === 'palette-effect' && over.id === 'board-canvas') {
+      const effectId = active.id as string;
+      handleAddEffect(effectId);
+    }
+
+    // ボード内でのエフェクター移動
+    if (active.data.current?.type === 'placed-effect' && over.id === 'board-canvas') {
+      const effectId = active.id as string;
+      const currentPosition = active.data.current?.position;
+      const effect = active.data.current?.effect;
+      
+      if (currentPosition && delta && effect) {
+        // deltaを使用して新しい位置を計算（mm変換）
+        const MM_TO_PX_RATIO = 0.8;
+        const deltaXMm = delta.x / (MM_TO_PX_RATIO * scale);
+        const deltaYMm = delta.y / (MM_TO_PX_RATIO * scale);
+        
+        let newX = currentPosition.x + deltaXMm;
+        let newY = currentPosition.y + deltaYMm;
+        
+        // グリッドスナップを適用
+        if (snapToGrid) {
+          const snapped = snapToGridEnhanced(
+            newX,
+            newY,
+            gridSize,
+            { width: effect.width_mm, height: effect.height_mm },
+            { width: board.width_mm, height: board.height_mm },
+            currentPosition.rotation || 0
+          );
+          newX = snapped.x;
+          newY = snapped.y;
+        } else {
+          // スナップなしの場合は手動境界チェック
+          newX = Math.max(0, Math.min(
+            board.width_mm - effect.width_mm, 
+            newX
+          ));
+          newY = Math.max(0, Math.min(
+            board.height_mm - effect.height_mm,
+            newY
+          ));
+        }
+        
+        handleEffectPositionUpdate(effectId, newX, newY);
+      }
+    }
+  }, [handleAddEffect, handleEffectPositionUpdate, board, scale, snapToGrid, gridSize]);
 
   // 保存処理
   const handleSave = useCallback(async () => {
@@ -126,7 +227,14 @@ export default function LayoutEditor({
   const availableEffects = getAvailableEffects();
 
   return (
-    <div className="h-full flex">
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="h-full flex">
       {/* サイドパネル - エフェクター一覧 */}
       <div className="w-80 border-r border-gray-200 bg-gray-50 flex flex-col">
         {/* ツールバー */}
@@ -167,7 +275,7 @@ export default function LayoutEditor({
               <ZoomIn size={16} />
             </button>
             
-            <div className="ml-4 border-l border-gray-300 pl-4">
+            <div className="ml-4 border-l border-gray-300 pl-4 flex items-center gap-2">
               <button
                 onClick={() => setShowGrid(!showGrid)}
                 className={`p-2 rounded transition-colors ${
@@ -179,6 +287,33 @@ export default function LayoutEditor({
               >
                 <Grid3x3 size={16} />
               </button>
+              
+              {/* グリッドスナップ切替 */}
+              <button
+                onClick={() => setSnapToGrid(!snapToGrid)}
+                className={`px-3 py-1 text-xs rounded transition-colors ${
+                  snapToGrid
+                    ? 'bg-purple-100 text-purple-700 border border-purple-300'
+                    : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'
+                }`}
+                title="グリッドスナップ切替"
+              >
+                スナップ
+              </button>
+              
+              {/* グリッドサイズ選択 */}
+              {snapToGrid && (
+                <select
+                  value={gridSize}
+                  onChange={(e) => setGridSize(parseInt(e.target.value))}
+                  className="text-xs border border-gray-300 rounded px-2 py-1"
+                  title="グリッドサイズ"
+                >
+                  <option value={1}>1mm</option>
+                  <option value={5}>5mm</option>
+                  <option value={10}>10mm</option>
+                </select>
+              )}
             </div>
           </div>
         </div>
@@ -197,21 +332,11 @@ export default function LayoutEditor({
             ) : (
               <div className="space-y-2">
                 {availableEffects.map((effect) => (
-                  <div
+                  <DraggableEffect
                     key={effect.id}
-                    className="p-3 border border-gray-200 rounded-lg bg-white hover:border-purple-300 transition-colors cursor-pointer"
-                    onClick={() => handleAddEffect(effect.id)}
-                  >
-                    <h5 className="font-medium text-gray-900 mb-1">{effect.name}</h5>
-                    <p className="text-sm text-gray-500">
-                      {effect.width_mm} × {effect.height_mm} mm
-                    </p>
-                    {effect.memo && (
-                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                        {effect.memo}
-                      </p>
-                    )}
-                  </div>
+                    effect={effect}
+                    isInPalette={true}
+                  />
                 ))}
               </div>
             )}
@@ -227,25 +352,14 @@ export default function LayoutEditor({
                 {placedEffects.map((effect) => {
                   if (!effect) return null;
                   return (
-                    <div
+                    <DraggableEffect
                       key={effect.id}
-                      className="p-3 border border-green-200 rounded-lg bg-green-50 hover:border-green-300 transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h5 className="font-medium text-gray-900 mb-1">{effect.name}</h5>
-                          <p className="text-sm text-gray-600">
-                            位置: ({Math.round(effect.position.x)}, {Math.round(effect.position.y)})
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveEffect(effect.id)}
-                          className="text-red-600 hover:text-red-800 text-sm transition-colors"
-                        >
-                          削除
-                        </button>
-                      </div>
-                    </div>
+                      effect={effect}
+                      isInPalette={false}
+                      position={effect.position}
+                      onRemove={handleRemoveEffect}
+                      onRotate={handleEffectRotate}
+                    />
                   );
                 })}
               </div>
@@ -270,7 +384,7 @@ export default function LayoutEditor({
 
       {/* メインエリア - ボードキャンバス */}
       <div className="flex-1 bg-white">
-        <BoardCanvas
+        <DroppableBoard
           board={board}
           effects={placedEffects.filter(Boolean) as (Effect & { position: EffectPosition })[]}
           scale={scale}
@@ -280,6 +394,19 @@ export default function LayoutEditor({
           onEffectPositionUpdate={handleEffectPositionUpdate}
         />
       </div>
-    </div>
+      </div>
+
+      {/* DragOverlay for visual feedback */}
+      <DragOverlay>
+        {activeId ? (
+          <div className="bg-white border-2 border-purple-500 rounded-lg shadow-lg transform rotate-3 opacity-90">
+            <DraggableEffect
+              effect={effects.find(e => e.id === activeId)!}
+              isInPalette={true}
+            />
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
