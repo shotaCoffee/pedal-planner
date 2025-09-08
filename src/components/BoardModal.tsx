@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Board } from '../types';
-import { createBoard, updateBoard } from '../lib/boards';
 import { getUserId } from '../lib/auth';
 
 interface BoardModalProps {
@@ -114,9 +113,44 @@ export default function BoardModal({ board, onClose, onSave }: BoardModalProps) 
       const memo = formData.memo.trim() || undefined;
 
       if (isEdit && board) {
-        await updateBoard(board.id, userId, formData.name.trim(), widthMm, heightMm, memo);
+        // 編集の場合
+        const response = await fetch('/api/boards', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: board.id,
+            userId,
+            name: formData.name.trim(),
+            widthMm,
+            heightMm,
+            memo
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update board');
+        }
       } else {
-        await createBoard(userId, formData.name.trim(), widthMm, heightMm, memo);
+        // 新規作成の場合
+        const response = await fetch('/api/boards', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId,
+            name: formData.name.trim(),
+            widthMm,
+            heightMm,
+            memo
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create board');
+        }
       }
 
       onSave();

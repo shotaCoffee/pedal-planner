@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2, Settings } from 'lucide-react';
 import { Board } from '../../types';
-import { getBoards, deleteBoard } from '../../lib/boards';
 import { getUserId } from '../../lib/auth';
 import BoardModal from '../../components/BoardModal';
 
@@ -17,7 +16,11 @@ export default function BoardsPage() {
     try {
       setLoading(true);
       const userId = getUserId();
-      const boardsData = await getBoards(userId);
+      const response = await fetch(`/api/boards?userId=${userId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch boards');
+      }
+      const boardsData = await response.json();
       setBoards(boardsData);
     } catch (error) {
       console.error('ペダルボード一覧の取得に失敗しました:', error);
@@ -35,8 +38,15 @@ export default function BoardsPage() {
 
     try {
       const userId = getUserId();
-      const success = await deleteBoard(board.id, userId);
-      if (success) {
+      const response = await fetch('/api/boards', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: board.id, userId }),
+      });
+
+      if (response.ok) {
         setBoards(boards.filter(b => b.id !== board.id));
       } else {
         alert('削除に失敗しました');
@@ -92,7 +102,7 @@ export default function BoardsPage() {
         {boards.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow">
             <Settings className="mx-auto mb-4 text-gray-400" size={48} />
-            <p className="text-gray-600 mb-4">ペダルボードが登録されていません</p>
+            <p className="text-gray-600 mb-6">ペダルボードが登録されていません</p>
             <button
               onClick={() => setShowModal(true)}
               className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors"

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Effect } from '../types';
-import { createEffect, updateEffect } from '../lib/effects';
 import { getUserId } from '../lib/auth';
 
 interface EffectModalProps {
@@ -82,9 +81,44 @@ export default function EffectModal({ effect, onClose, onSave }: EffectModalProp
       const memo = formData.memo.trim() || undefined;
 
       if (isEdit && effect) {
-        await updateEffect(effect.id, userId, formData.name.trim(), widthMm, heightMm, memo);
+        // 編集の場合
+        const response = await fetch('/api/effects', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: effect.id,
+            userId,
+            name: formData.name.trim(),
+            widthMm,
+            heightMm,
+            memo
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update effect');
+        }
       } else {
-        await createEffect(userId, formData.name.trim(), widthMm, heightMm, memo);
+        // 新規作成の場合
+        const response = await fetch('/api/effects', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId,
+            name: formData.name.trim(),
+            widthMm,
+            heightMm,
+            memo
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create effect');
+        }
       }
 
       onSave();

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Guitar, Settings, Layout } from "lucide-react";
+import { Guitar, Settings, PanelsTopLeft } from "lucide-react";
 
 export default function Home() {
   return (
@@ -24,8 +24,7 @@ export default function Home() {
                 所有しているエフェクターを登録・管理する
               </p>
             </Link>
-
-            <Link 
+            <Link
               href="/boards"
               className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-8 text-center group"
             >
@@ -37,25 +36,18 @@ export default function Home() {
                 ペダルボードを登録・管理する
               </p>
             </Link>
-
-            <Link 
+            <Link
               href="/layouts"
               className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-8 text-center group"
             >
               <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
-                <Layout className="w-8 h-8 text-purple-600" />
+                <PanelsTopLeft className="w-8 h-8 text-purple-600" />
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">レイアウト管理</h2>
               <p className="text-gray-600">
                 ペダルボード上にエフェクターを配置・管理する
               </p>
             </Link>
-          </div>
-
-          <div className="mt-12 text-center">
-            <p className="text-sm text-gray-500">
-              Phase 3: レイアウト機能実装開始！
-            </p>
           </div>
         </div>
       </div>

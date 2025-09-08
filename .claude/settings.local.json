@@ -6,7 +6,9 @@
       "Bash(npm run dev:*)",
       "Bash(docker exec:*)",
       "Bash(npm run:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(find:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []
