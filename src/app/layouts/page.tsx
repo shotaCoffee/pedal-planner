@@ -5,8 +5,10 @@ import { Plus, Edit2, Trash2, Layout, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { Layout as LayoutType, Board } from '../../types';
 import { getUserId } from '../../lib/auth';
+import { useToast } from '../../components/Toast';
 
 export default function LayoutsPage() {
+  const { addToast } = useToast();
   const [layouts, setLayouts] = useState<LayoutType[]>([]);
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,11 +55,10 @@ export default function LayoutsPage() {
       if (res.ok) {
         setLayouts(layouts.filter(l => l.id !== layout.id));
       } else {
-        alert('削除に失敗しました');
+        addToast('削除に失敗しました', 'error');
       }
     } catch (error) {
-      console.error('レイアウト削除に失敗しました:', error);
-      alert('削除に失敗しました');
+      addToast('削除に失敗しました', 'error');
     }
   };
 
@@ -87,13 +88,12 @@ export default function LayoutsPage() {
         // 共有URLをクリップボードにコピー
         const shareUrl = `${window.location.origin}/layouts/shared/${shareCode}`;
         await navigator.clipboard.writeText(shareUrl);
-        alert(`共有URLをクリップボードにコピーしました:\n${shareUrl}`);
+        addToast('共有URLをクリップボードにコピーしました', 'success');
       } else {
-        alert('共有コードの生成に失敗しました');
+        addToast('共有コードの生成に失敗しました', 'error');
       }
     } catch (error) {
-      console.error('共有コード生成に失敗しました:', error);
-      alert('共有コード生成に失敗しました');
+      addToast('共有コード生成に失敗しました', 'error');
     }
   };
 

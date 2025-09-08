@@ -31,7 +31,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Layout not found or update failed' }, { status: 404 });
     }
   } catch (error) {
-    console.error('Failed to update layout:', error);
-    return NextResponse.json({ error: 'Failed to update layout' }, { status: 500 });
+    throw new Error(`Failed to update layout: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

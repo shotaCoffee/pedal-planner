@@ -19,8 +19,7 @@ export async function GET(request: NextRequest) {
     const effects = result.rows;
     return NextResponse.json(effects);
   } catch (error) {
-    console.error('Failed to fetch effects:', error);
-    return NextResponse.json({ error: 'Failed to fetch effects' }, { status: 500 });
+    throw new Error(`Failed to fetch effects: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -42,8 +41,7 @@ export async function POST(request: NextRequest) {
     const effect = result.rows[0];
     return NextResponse.json(effect, { status: 201 });
   } catch (error) {
-    console.error('Failed to create effect:', error);
-    return NextResponse.json({ error: 'Failed to create effect' }, { status: 500 });
+    throw new Error(`Failed to create effect: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -66,8 +64,7 @@ export async function PUT(request: NextRequest) {
     const effect = result.rows[0] || null;
     return NextResponse.json(effect);
   } catch (error) {
-    console.error('Failed to update effect:', error);
-    return NextResponse.json({ error: 'Failed to update effect' }, { status: 500 });
+    throw new Error(`Failed to update effect: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -92,7 +89,6 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to delete effect' }, { status: 404 });
     }
   } catch (error) {
-    console.error('Failed to delete effect:', error);
-    return NextResponse.json({ error: 'Failed to delete effect' }, { status: 500 });
+    throw new Error(`Failed to delete effect: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

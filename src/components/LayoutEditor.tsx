@@ -17,6 +17,7 @@ import { Layout, Board, Effect, LayoutData, EffectPosition } from '../types';
 import DroppableBoard from './DroppableBoard';
 import DraggableEffect from './DraggableEffect';
 import { snapToGridEnhanced } from '../lib/coordinates';
+import { useToast } from './Toast';
 
 interface LayoutEditorProps {
   layout: Layout;
@@ -31,6 +32,7 @@ export default function LayoutEditor({
   effects,
   onSave,
 }: LayoutEditorProps) {
+  const { addToast } = useToast();
   const [currentLayoutData, setCurrentLayoutData] = useState<LayoutData>(layout.layout_data);
   const [scale, setScale] = useState<number>(1.0);
   const [showGrid, setShowGrid] = useState<boolean>(true);
@@ -138,7 +140,7 @@ export default function LayoutEditor({
     try {
       setActiveId(event.active.id as string);
     } catch (error) {
-      console.error('ドラッグ開始エラー:', error);
+      addToast('ドラッグ操作中にエラーが発生しました', 'error');
       setActiveId(null);
     }
   }, []);
@@ -204,13 +206,13 @@ export default function LayoutEditor({
             
             handleEffectPositionUpdate(effectId, newX, newY);
           } catch (positionError) {
-            console.error('エフェクター位置更新エラー:', positionError);
+            addToast('エフェクター位置更新に失敗しました', 'error');
             // エラー時は元の位置を維持
           }
         }
       }
     } catch (error) {
-      console.error('ドラッグ終了エラー:', error);
+      addToast('ドラッグ操作中にエラーが発生しました', 'error');
       setActiveId(null);
     }
   }, [handleAddEffect, handleEffectPositionUpdate, board, scale, snapToGrid, gridSize]);
@@ -226,7 +228,7 @@ export default function LayoutEditor({
       };
       await onSave(updatedLayout);
     } catch (error) {
-      console.error('保存エラー:', error);
+      addToast('保存に失敗しました', 'error');
     } finally {
       setSaving(false);
     }

@@ -6,8 +6,10 @@ import { Save, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Board } from '../../../types';
 import { getUserId } from '../../../lib/auth';
+import { useToast } from '../../../components/Toast';
 
 export default function NewLayoutPage() {
+  const { addToast } = useToast();
   const router = useRouter();
   const [boards, setBoards] = useState<Board[]>([]);
   const [selectedBoardId, setSelectedBoardId] = useState<string>('');
@@ -30,7 +32,7 @@ export default function NewLayoutPage() {
         const boardsData = await response.json();
         setBoards(boardsData);
       } catch (error) {
-        console.error('ペダルボード取得に失敗しました:', error);
+        addToast('ペダルボード取得に失敗しました', 'error');
         alert('ペダルボード取得に失敗しました');
       } finally {
         setLoading(false);
@@ -82,7 +84,7 @@ export default function NewLayoutPage() {
       // レイアウト編集ページにリダイレクト
       router.push(`/layouts/${newLayout.id}`);
     } catch (error) {
-      console.error('レイアウト作成に失敗しました:', error);
+      addToast('レイアウト作成に失敗しました', 'error');
       alert('レイアウト作成に失敗しました');
     } finally {
       setSaving(false);

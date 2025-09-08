@@ -19,7 +19,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to generate share code' }, { status: 500 });
     }
   } catch (error) {
-    console.error('Failed to generate share code:', error);
-    return NextResponse.json({ error: 'Failed to generate share code' }, { status: 500 });
+    throw new Error(`Failed to generate share code: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

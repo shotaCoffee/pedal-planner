@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Effect } from '../types';
 import { getUserId } from '../lib/auth';
+import { useToast } from './Toast';
 
 interface EffectModalProps {
   effect?: Effect | null;
@@ -12,6 +13,7 @@ interface EffectModalProps {
 }
 
 export default function EffectModal({ effect, onClose, onSave }: EffectModalProps) {
+  const { addToast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     widthMm: '',
@@ -123,8 +125,7 @@ export default function EffectModal({ effect, onClose, onSave }: EffectModalProp
 
       onSave();
     } catch (error) {
-      console.error('エフェクター保存に失敗しました:', error);
-      alert('保存に失敗しました。もう一度お試しください。');
+      addToast('保存に失敗しました。もう一度お試しください。', 'error');
     } finally {
       setLoading(false);
     }

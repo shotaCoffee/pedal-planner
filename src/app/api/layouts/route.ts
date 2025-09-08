@@ -15,8 +15,7 @@ export async function GET(request: NextRequest) {
     const layouts = await getLayouts(userId);
     return NextResponse.json(layouts);
   } catch (error) {
-    console.error('Failed to fetch layouts:', error);
-    return NextResponse.json({ error: 'Failed to fetch layouts' }, { status: 500 });
+    throw new Error(`Failed to fetch layouts: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -44,8 +43,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(layout, { status: 201 });
   } catch (error) {
-    console.error('Failed to create layout:', error);
-    return NextResponse.json({ error: 'Failed to create layout' }, { status: 500 });
+    throw new Error(`Failed to create layout: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -68,7 +66,6 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Layout not found' }, { status: 404 });
     }
   } catch (error) {
-    console.error('Failed to delete layout:', error);
-    return NextResponse.json({ error: 'Failed to delete layout' }, { status: 500 });
+    throw new Error(`Failed to delete layout: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

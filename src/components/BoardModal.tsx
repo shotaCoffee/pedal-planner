@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Board } from '../types';
 import { getUserId } from '../lib/auth';
+import { useToast } from './Toast';
 
 interface BoardModalProps {
   board?: Board | null;
@@ -23,6 +24,7 @@ const BOARD_PRESETS = [
 ];
 
 export default function BoardModal({ board, onClose, onSave }: BoardModalProps) {
+  const { addToast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     widthMm: '',
@@ -155,8 +157,7 @@ export default function BoardModal({ board, onClose, onSave }: BoardModalProps) 
 
       onSave();
     } catch (error) {
-      console.error('ペダルボード保存に失敗しました:', error);
-      alert('保存に失敗しました。もう一度お試しください。');
+      addToast('保存に失敗しました。もう一度お試しください。', 'error');
     } finally {
       setLoading(false);
     }

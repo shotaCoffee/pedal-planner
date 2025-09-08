@@ -5,8 +5,10 @@ import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { Effect } from '../../types';
 import { getUserId } from '../../lib/auth';
 import EffectModal from '../../components/EffectModal';
+import { useToast } from '../../components/Toast';
 
 export default function EffectsPage() {
+  const { addToast } = useToast();
   const [effects, setEffects] = useState<Effect[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -23,7 +25,7 @@ export default function EffectsPage() {
       const effectsData = await response.json();
       setEffects(effectsData);
     } catch (error) {
-      console.error('エフェクター一覧の取得に失敗しました:', error);
+      addToast('エフェクター一覧の取得に失敗しました', 'error');
     } finally {
       setLoading(false);
     }
@@ -49,11 +51,10 @@ export default function EffectsPage() {
       if (response.ok) {
         setEffects(effects.filter(e => e.id !== effect.id));
       } else {
-        alert('削除に失敗しました');
+        addToast('削除に失敗しました', 'error');
       }
     } catch (error) {
-      console.error('エフェクター削除に失敗しました:', error);
-      alert('削除に失敗しました');
+      addToast('削除に失敗しました', 'error');
     }
   };
 

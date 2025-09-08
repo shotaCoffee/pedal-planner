@@ -5,8 +5,10 @@ import { Plus, Edit2, Trash2, Settings } from 'lucide-react';
 import { Board } from '../../types';
 import { getUserId } from '../../lib/auth';
 import BoardModal from '../../components/BoardModal';
+import { useToast } from '../../components/Toast';
 
 export default function BoardsPage() {
+  const { addToast } = useToast();
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -23,7 +25,7 @@ export default function BoardsPage() {
       const boardsData = await response.json();
       setBoards(boardsData);
     } catch (error) {
-      console.error('ペダルボード一覧の取得に失敗しました:', error);
+      addToast('ペダルボード一覧の取得に失敗しました', 'error');
     } finally {
       setLoading(false);
     }
@@ -49,11 +51,10 @@ export default function BoardsPage() {
       if (response.ok) {
         setBoards(boards.filter(b => b.id !== board.id));
       } else {
-        alert('削除に失敗しました');
+        addToast('削除に失敗しました', 'error');
       }
     } catch (error) {
-      console.error('ペダルボード削除に失敗しました:', error);
-      alert('削除に失敗しました');
+      addToast('削除に失敗しました', 'error');
     }
   };
 

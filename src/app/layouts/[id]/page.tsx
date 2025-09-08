@@ -7,8 +7,10 @@ import Link from 'next/link';
 import { Layout, Board, Effect } from '../../../types';
 import { getUserId } from '../../../lib/auth';
 import LayoutEditor from '../../../components/LayoutEditor';
+import { useToast } from '../../../components/Toast';
 
 export default function EditLayoutPage() {
+  const { addToast } = useToast();
   const params = useParams();
   const layoutId = params.id as string;
   
@@ -58,7 +60,7 @@ export default function EditLayoutPage() {
         setBoard(currentBoard);
         setEffects(effectsData);
       } catch (error) {
-        console.error('データ取得エラー:', error);
+        addToast('データ取得に失敗しました', 'error');
         setError(error instanceof Error ? error.message : 'データの取得に失敗しました');
       } finally {
         setLoading(false);
@@ -95,7 +97,7 @@ export default function EditLayoutPage() {
       // 成功メッセージ（簡易実装）
       alert('レイアウトを保存しました！');
     } catch (error) {
-      console.error('保存エラー:', error);
+      addToast('保存に失敗しました', 'error');
       alert('レイアウトの保存に失敗しました');
     }
   };

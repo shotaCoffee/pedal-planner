@@ -19,8 +19,7 @@ export async function GET(request: NextRequest) {
     const boards = result.rows;
     return NextResponse.json(boards);
   } catch (error) {
-    console.error('Failed to fetch boards:', error);
-    return NextResponse.json({ error: 'Failed to fetch boards' }, { status: 500 });
+    throw new Error(`Failed to fetch boards: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -42,8 +41,7 @@ export async function POST(request: NextRequest) {
     const board = result.rows[0];
     return NextResponse.json(board, { status: 201 });
   } catch (error) {
-    console.error('Failed to create board:', error);
-    return NextResponse.json({ error: 'Failed to create board' }, { status: 500 });
+    throw new Error(`Failed to create board: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -66,8 +64,7 @@ export async function PUT(request: NextRequest) {
     const board = result.rows[0] || null;
     return NextResponse.json(board);
   } catch (error) {
-    console.error('Failed to update board:', error);
-    return NextResponse.json({ error: 'Failed to update board' }, { status: 500 });
+    throw new Error(`Failed to update board: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -92,7 +89,6 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to delete board' }, { status: 404 });
     }
   } catch (error) {
-    console.error('Failed to delete board:', error);
-    return NextResponse.json({ error: 'Failed to delete board' }, { status: 500 });
+    throw new Error(`Failed to delete board: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
