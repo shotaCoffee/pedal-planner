@@ -163,7 +163,7 @@ export default function EffectModal({ effect, onClose, onSave }: EffectModalProp
               type="text"
               value={formData.name}
               onChange={(e) => handleChange('name', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white ${
                 errors.name ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="例: Boss DS-1"
@@ -183,7 +183,7 @@ export default function EffectModal({ effect, onClose, onSave }: EffectModalProp
                 type="number"
                 value={formData.widthMm}
                 onChange={(e) => handleChange('widthMm', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white ${
                   errors.widthMm ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="73"
@@ -204,7 +204,7 @@ export default function EffectModal({ effect, onClose, onSave }: EffectModalProp
                 type="number"
                 value={formData.heightMm}
                 onChange={(e) => handleChange('heightMm', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white ${
                   errors.heightMm ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="129"
@@ -225,7 +225,7 @@ export default function EffectModal({ effect, onClose, onSave }: EffectModalProp
             <textarea
               value={formData.memo}
               onChange={(e) => handleChange('memo', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900 placeholder-gray-400 bg-white ${
                 errors.memo ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="設定値やコメントなど"
