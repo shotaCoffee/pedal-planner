@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { Effect } from '../../types';
 import { getUserId } from '../../lib/auth';
@@ -14,7 +14,7 @@ export default function EffectsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingEffect, setEditingEffect] = useState<Effect | null>(null);
 
-  const loadEffects = async () => {
+  const loadEffects = useCallback(async () => {
     try {
       setLoading(true);
       const userId = getUserId();
@@ -24,16 +24,16 @@ export default function EffectsPage() {
       }
       const effectsData = await response.json();
       setEffects(effectsData);
-    } catch (error) {
+    } catch {
       addToast('エフェクター一覧の取得に失敗しました', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast]);
 
   useEffect(() => {
     loadEffects();
-  }, []);
+  }, [loadEffects]);
 
   const handleDelete = async (effect: Effect) => {
     if (!confirm(`「${effect.name}」を削除しますか？`)) return;
@@ -53,7 +53,7 @@ export default function EffectsPage() {
       } else {
         addToast('削除に失敗しました', 'error');
       }
-    } catch (error) {
+    } catch {
       addToast('削除に失敗しました', 'error');
     }
   };

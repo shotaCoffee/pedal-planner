@@ -156,7 +156,7 @@ export default function BoardModal({ board, onClose, onSave }: BoardModalProps) 
       }
 
       onSave();
-    } catch (error) {
+    } catch {
       addToast('保存に失敗しました。もう一度お試しください。', 'error');
     } finally {
       setLoading(false);

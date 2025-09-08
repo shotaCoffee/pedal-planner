@@ -124,7 +124,7 @@ export default function EffectModal({ effect, onClose, onSave }: EffectModalProp
       }
 
       onSave();
-    } catch (error) {
+    } catch {
       addToast('保存に失敗しました。もう一度お試しください。', 'error');
     } finally {
       setLoading(false);

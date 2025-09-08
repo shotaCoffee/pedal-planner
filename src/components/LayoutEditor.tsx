@@ -139,11 +139,11 @@ export default function LayoutEditor({
   const handleDragStart = useCallback((event: DragStartEvent) => {
     try {
       setActiveId(event.active.id as string);
-    } catch (error) {
+    } catch {
       addToast('ドラッグ操作中にエラーが発生しました', 'error');
       setActiveId(null);
     }
-  }, []);
+  }, [addToast]);
 
   const handleDragOver = useCallback(() => {
     // ドラッグオーバー処理（必要に応じて実装）
@@ -205,17 +205,17 @@ export default function LayoutEditor({
             }
             
             handleEffectPositionUpdate(effectId, newX, newY);
-          } catch (positionError) {
+          } catch {
             addToast('エフェクター位置更新に失敗しました', 'error');
             // エラー時は元の位置を維持
           }
         }
       }
-    } catch (error) {
+    } catch {
       addToast('ドラッグ操作中にエラーが発生しました', 'error');
       setActiveId(null);
     }
-  }, [handleAddEffect, handleEffectPositionUpdate, board, scale, snapToGrid, gridSize]);
+  }, [handleAddEffect, handleEffectPositionUpdate, board, scale, snapToGrid, gridSize, addToast]);
 
   // 保存処理
   const handleSave = useCallback(async () => {
@@ -227,12 +227,12 @@ export default function LayoutEditor({
         updated_at: new Date().toISOString(),
       };
       await onSave(updatedLayout);
-    } catch (error) {
+    } catch {
       addToast('保存に失敗しました', 'error');
     } finally {
       setSaving(false);
     }
-  }, [layout, currentLayoutData, onSave]);
+  }, [layout, currentLayoutData, onSave, addToast]);
 
   // 配置済みエフェクターの情報取得 - メモ化で最適化
   const placedEffects = useMemo(() => {

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/db';
-import { Effect } from '../../../types';
 
 // GET /api/effects - エフェクター一覧取得
 export async function GET(request: NextRequest) {

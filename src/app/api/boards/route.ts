@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/db';
-import { Board } from '../../../types';
 
 // GET /api/boards - ペダルボード一覧取得
 export async function GET(request: NextRequest) {

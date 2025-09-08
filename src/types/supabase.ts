@@ -1,6 +1,8 @@
 // Supabase Generated Types
 // この型定義は実際のSupabaseプロジェクト作成後に、Supabase CLI で生成し直すことを推奨
 
+import { LayoutData } from '../types'
+
 export interface Database {
   public: {
     Tables: {
@@ -68,7 +70,7 @@ export interface Database {
           user_id: string
           board_id: string
           name: string
-          layout_data: any // JSONB
+          layout_data: LayoutData // JSONB
           signal_chain_memo: string | null
           general_memo: string | null
           share_code: string | null
@@ -80,7 +82,7 @@ export interface Database {
           user_id: string
           board_id: string
           name: string
-          layout_data: any
+          layout_data: LayoutData
           signal_chain_memo?: string | null
           general_memo?: string | null
           share_code?: string | null
@@ -92,7 +94,7 @@ export interface Database {
           user_id?: string
           board_id?: string
           name?: string
-          layout_data?: any
+          layout_data?: LayoutData
           signal_chain_memo?: string | null
           general_memo?: string | null
           share_code?: string | null

@@ -70,7 +70,7 @@ export default function EditLayoutPage() {
     if (layoutId) {
       loadLayoutData();
     }
-  }, [layoutId]);
+  }, [layoutId, addToast]);
 
   // レイアウト保存処理
   const handleSaveLayout = async (updatedLayout: Layout) => {
@@ -96,7 +96,7 @@ export default function EditLayoutPage() {
       
       // 成功メッセージ（簡易実装）
       alert('レイアウトを保存しました！');
-    } catch (error) {
+    } catch {
       addToast('保存に失敗しました', 'error');
       alert('レイアウトの保存に失敗しました');
     }

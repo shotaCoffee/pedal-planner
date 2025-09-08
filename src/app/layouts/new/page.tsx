@@ -31,7 +31,7 @@ export default function NewLayoutPage() {
         }
         const boardsData = await response.json();
         setBoards(boardsData);
-      } catch (error) {
+      } catch {
         addToast('ペダルボード取得に失敗しました', 'error');
         alert('ペダルボード取得に失敗しました');
       } finally {
@@ -40,7 +40,7 @@ export default function NewLayoutPage() {
     };
 
     loadBoards();
-  }, []);
+  }, [addToast]);
 
   // レイアウト作成処理
   const handleCreateLayout = async (e: React.FormEvent) => {
@@ -83,7 +83,7 @@ export default function NewLayoutPage() {
       
       // レイアウト編集ページにリダイレクト
       router.push(`/layouts/${newLayout.id}`);
-    } catch (error) {
+    } catch {
       addToast('レイアウト作成に失敗しました', 'error');
       alert('レイアウト作成に失敗しました');
     } finally {

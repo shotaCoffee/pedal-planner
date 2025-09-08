@@ -57,7 +57,7 @@ export default function LayoutsPage() {
       } else {
         addToast('削除に失敗しました', 'error');
       }
-    } catch (error) {
+    } catch {
       addToast('削除に失敗しました', 'error');
     }
   };
@@ -92,7 +92,7 @@ export default function LayoutsPage() {
       } else {
         addToast('共有コードの生成に失敗しました', 'error');
       }
-    } catch (error) {
+    } catch {
       addToast('共有コード生成に失敗しました', 'error');
     }
   };

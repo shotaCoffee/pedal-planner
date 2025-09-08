@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Plus, Edit2, Trash2, Settings } from 'lucide-react';
 import { Board } from '../../types';
 import { getUserId } from '../../lib/auth';
@@ -14,7 +14,7 @@ export default function BoardsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
 
-  const loadBoards = async () => {
+  const loadBoards = useCallback(async () => {
     try {
       setLoading(true);
       const userId = getUserId();
@@ -24,16 +24,16 @@ export default function BoardsPage() {
       }
       const boardsData = await response.json();
       setBoards(boardsData);
-    } catch (error) {
+    } catch {
       addToast('ペダルボード一覧の取得に失敗しました', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast]);
 
   useEffect(() => {
     loadBoards();
-  }, []);
+  }, [loadBoards]);
 
   const handleDelete = async (board: Board) => {
     if (!confirm(`「${board.name}」を削除しますか？`)) return;
@@ -53,7 +53,7 @@ export default function BoardsPage() {
       } else {
         addToast('削除に失敗しました', 'error');
       }
-    } catch (error) {
+    } catch {
       addToast('削除に失敗しました', 'error');
     }
   };
