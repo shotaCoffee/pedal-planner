@@ -1,105 +1,38 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Layout, Share2 } from 'lucide-react';
 import Link from 'next/link';
-import { Layout as LayoutType, Board } from '../../types';
-import { getUserId } from '../../lib/auth';
-import { useToast } from '../../components/Toast';
+import { Layout as LayoutType } from '../../types';
+import { useLayoutsData, useLayoutActions, useBoardLookup } from '../../hooks';
 
 export default function LayoutsPage() {
-  const { addToast } = useToast();
+  // カスタムフックでデータ取得
+  const { layouts: initialLayouts, boards, loading, error } = useLayoutsData();
+  
+  // ローカル状態でlayoutsを管理（楽観的更新のため）
   const [layouts, setLayouts] = useState<LayoutType[]>([]);
-  const [boards, setBoards] = useState<Board[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const userId = getUserId();
-      const [layoutsRes, boardsRes] = await Promise.all([
-        fetch(`/api/layouts?userId=${userId}`),
-        fetch(`/api/boards?userId=${userId}`)
-      ]);
-      
-      if (!layoutsRes.ok || !boardsRes.ok) {
-        throw new Error('Failed to fetch data');
-      }
-      
-      const [layoutsData, boardsData] = await Promise.all([
-        layoutsRes.json(),
-        boardsRes.json()
-      ]);
-      setLayouts(layoutsData);
-      setBoards(boardsData);
-    } catch (error) {
-      console.error('データの取得に失敗しました:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  
+  // 初期データ取得時にローカル状態を更新
   useEffect(() => {
-    loadData();
-  }, []);
-
+    setLayouts(initialLayouts);
+  }, [initialLayouts]);
+  
+  // フック経由でアクション実行
+  const { deleteLayout: deleteLayoutAction, generateShareCode: generateShareCodeAction } = useLayoutActions({ 
+    layouts, 
+    setLayouts 
+  });
+  
+  // Board名検索フック
+  const { getBoardName } = useBoardLookup(boards);
+  
   const handleDelete = async (layout: LayoutType) => {
-    if (!confirm(`「${layout.name}」を削除しますか？`)) return;
-
-    try {
-      const userId = getUserId();
-      const res = await fetch(`/api/layouts?id=${layout.id}&userId=${userId}`, {
-        method: 'DELETE',
-      });
-      
-      if (res.ok) {
-        setLayouts(layouts.filter(l => l.id !== layout.id));
-      } else {
-        addToast('削除に失敗しました', 'error');
-      }
-    } catch {
-      addToast('削除に失敗しました', 'error');
-    }
+    await deleteLayoutAction(layout);
   };
 
   const handleGenerateShareCode = async (layout: LayoutType) => {
-    try {
-      const userId = getUserId();
-      const res = await fetch('/api/layouts/share-code', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: layout.id,
-          userId: userId,
-        }),
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        const shareCode = data.shareCode;
-        
-        // レイアウトリストを更新
-        setLayouts(layouts.map(l => 
-          l.id === layout.id ? { ...l, share_code: shareCode } : l
-        ));
-        
-        // 共有URLをクリップボードにコピー
-        const shareUrl = `${window.location.origin}/layouts/shared/${shareCode}`;
-        await navigator.clipboard.writeText(shareUrl);
-        addToast('共有URLをクリップボードにコピーしました', 'success');
-      } else {
-        addToast('共有コードの生成に失敗しました', 'error');
-      }
-    } catch {
-      addToast('共有コード生成に失敗しました', 'error');
-    }
-  };
-
-  const getBoardName = (boardId: string) => {
-    const board = boards.find(b => b.id === boardId);
-    return board?.name || 'Unknown Board';
+    await generateShareCodeAction(layout);
   };
 
   if (loading) {
