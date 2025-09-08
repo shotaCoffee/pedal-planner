@@ -50,7 +50,7 @@ describe('auth functions', () => {
     it('should return temp server ID when window is undefined (SSR)', () => {
       // SSRシミュレーション - windowを一時的に無効化
       const originalWindow = global.window
-      // @ts-ignore
+      // @ts-expect-error - windowを意図的にundefinedにする
       global.window = undefined
 
       const result = getUserId()
@@ -72,7 +72,7 @@ describe('auth functions', () => {
 
     it('should return temp server ID when window is undefined (SSR)', () => {
       const originalWindow = global.window
-      // @ts-ignore
+      // @ts-expect-error - windowを意図的にundefinedにする
       global.window = undefined
 
       const result = regenerateUserId()
@@ -101,7 +101,7 @@ describe('auth functions', () => {
 
     it('should do nothing when window is undefined (SSR)', () => {
       const originalWindow = global.window
-      // @ts-ignore
+      // @ts-expect-error - windowを意図的にundefinedにする
       global.window = undefined
 
       clearUserId()

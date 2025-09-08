@@ -12,6 +12,12 @@ import {
 import * as db from '@/lib/db'
 import { createMockLayout } from '@/test/factories'
 
+// PostgreSQL query result type
+type QueryResult = {
+  rows: unknown[]
+  rowCount: number
+}
+
 // db.queryをモック化
 vi.mock('@/lib/db', () => ({
   query: vi.fn()
@@ -35,7 +41,7 @@ describe('layouts functions', () => {
         createMockLayout({ user_id: userId })
       ]
       
-      mockQuery.mockResolvedValue({ rows: mockLayouts } as any)
+      mockQuery.mockResolvedValue({ rows: mockLayouts, rowCount: mockLayouts.length } as QueryResult)
 
       const result = await getLayouts(userId)
 
@@ -47,7 +53,7 @@ describe('layouts functions', () => {
     })
 
     it('should return empty array when no layouts found', async () => {
-      mockQuery.mockResolvedValue({ rows: [] } as any)
+      mockQuery.mockResolvedValue({ rows: [], rowCount: 0 } as QueryResult)
 
       const result = await getLayouts(userId)
 
@@ -59,7 +65,7 @@ describe('layouts functions', () => {
     it('should fetch a specific layout for a user', async () => {
       const mockLayout = createMockLayout({ id: layoutId, user_id: userId })
       
-      mockQuery.mockResolvedValue({ rows: [mockLayout] } as any)
+      mockQuery.mockResolvedValue({ rows: [mockLayout], rowCount: 1 } as QueryResult)
 
       const result = await getLayout(layoutId, userId)
 
@@ -71,7 +77,7 @@ describe('layouts functions', () => {
     })
 
     it('should return null when layout not found', async () => {
-      mockQuery.mockResolvedValue({ rows: [] } as any)
+      mockQuery.mockResolvedValue({ rows: [], rowCount: 0 } as QueryResult)
 
       const result = await getLayout(layoutId, userId)
 
@@ -99,7 +105,7 @@ describe('layouts functions', () => {
         general_memo: generalMemo
       })
 
-      mockQuery.mockResolvedValue({ rows: [mockCreatedLayout] } as any)
+      mockQuery.mockResolvedValue({ rows: [mockCreatedLayout], rowCount: 1 } as QueryResult)
 
       const result = await createLayout(
         userId,
@@ -128,7 +134,7 @@ describe('layouts functions', () => {
         layout_data: layoutData
       })
 
-      mockQuery.mockResolvedValue({ rows: [mockCreatedLayout] } as any)
+      mockQuery.mockResolvedValue({ rows: [mockCreatedLayout], rowCount: 1 } as QueryResult)
 
       const result = await createLayout(userId, boardId, name, layoutData)
 
@@ -160,7 +166,7 @@ describe('layouts functions', () => {
         general_memo: generalMemo
       })
 
-      mockQuery.mockResolvedValue({ rows: [mockUpdatedLayout] } as any)
+      mockQuery.mockResolvedValue({ rows: [mockUpdatedLayout], rowCount: 1 } as QueryResult)
 
       const result = await updateLayout(
         layoutId,
@@ -182,7 +188,7 @@ describe('layouts functions', () => {
       const layoutData = { effects: [] }
       const name = 'Non-existent Layout'
 
-      mockQuery.mockResolvedValue({ rows: [] } as any)
+      mockQuery.mockResolvedValue({ rows: [], rowCount: 0 } as QueryResult)
 
       const result = await updateLayout(layoutId, userId, name, layoutData)
 
@@ -192,7 +198,7 @@ describe('layouts functions', () => {
 
   describe('deleteLayout', () => {
     it('should delete a layout and return true', async () => {
-      mockQuery.mockResolvedValue({ rowCount: 1 } as any)
+      mockQuery.mockResolvedValue({ rows: [], rowCount: 1 } as QueryResult)
 
       const result = await deleteLayout(layoutId, userId)
 
@@ -204,7 +210,7 @@ describe('layouts functions', () => {
     })
 
     it('should return false when no layout was deleted', async () => {
-      mockQuery.mockResolvedValue({ rowCount: 0 } as any)
+      mockQuery.mockResolvedValue({ rows: [], rowCount: 0 } as QueryResult)
 
       const result = await deleteLayout(layoutId, userId)
 
@@ -219,7 +225,7 @@ describe('layouts functions', () => {
         createMockLayout({ board_id: boardId, user_id: userId })
       ]
 
-      mockQuery.mockResolvedValue({ rows: mockLayouts } as any)
+      mockQuery.mockResolvedValue({ rows: mockLayouts, rowCount: mockLayouts.length } as QueryResult)
 
       const result = await getLayoutsByBoard(boardId, userId)
 
@@ -234,7 +240,7 @@ describe('layouts functions', () => {
   describe('generateShareCode', () => {
     it('should generate a share code for a layout', async () => {
       const shareCode = 'ABC12345'
-      mockQuery.mockResolvedValue({ rows: [{ share_code: shareCode }] } as any)
+      mockQuery.mockResolvedValue({ rows: [{ share_code: shareCode }], rowCount: 1 } as QueryResult)
 
       // Math.randomをモック
       vi.spyOn(Math, 'random').mockReturnValue(0.123456789)
@@ -249,7 +255,7 @@ describe('layouts functions', () => {
     })
 
     it('should return null when layout not found for share code generation', async () => {
-      mockQuery.mockResolvedValue({ rows: [] } as any)
+      mockQuery.mockResolvedValue({ rows: [], rowCount: 0 } as QueryResult)
 
       const result = await generateShareCode(layoutId, userId)
 
@@ -262,7 +268,7 @@ describe('layouts functions', () => {
       const shareCode = 'ABC12345'
       const mockLayout = createMockLayout({ share_code: shareCode })
 
-      mockQuery.mockResolvedValue({ rows: [mockLayout] } as any)
+      mockQuery.mockResolvedValue({ rows: [mockLayout], rowCount: 1 } as QueryResult)
 
       const result = await getLayoutByShareCode(shareCode)
 
@@ -275,7 +281,7 @@ describe('layouts functions', () => {
 
     it('should return null when no layout found with share code', async () => {
       const shareCode = 'INVALID123'
-      mockQuery.mockResolvedValue({ rows: [] } as any)
+      mockQuery.mockResolvedValue({ rows: [], rowCount: 0 } as QueryResult)
 
       const result = await getLayoutByShareCode(shareCode)
 

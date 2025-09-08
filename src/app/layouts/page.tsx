@@ -8,7 +8,7 @@ import { useLayoutsData, useLayoutActions, useBoardLookup } from '../../hooks';
 
 export default function LayoutsPage() {
   // カスタムフックでデータ取得
-  const { layouts: initialLayouts, boards, loading, error } = useLayoutsData();
+  const { layouts: initialLayouts, boards, loading } = useLayoutsData();
   
   // ローカル状態でlayoutsを管理（楽観的更新のため）
   const [layouts, setLayouts] = useState<LayoutType[]>([]);
