@@ -174,30 +174,6 @@ export default function LayoutsPage() {
             ))}
           </div>
         )}
-
-        {/* ナビゲーションリンク */}
-        <div className="mt-12 text-center">
-          <div className="inline-flex gap-4">
-            <Link
-              href="/"
-              className="text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              ← ホームに戻る
-            </Link>
-            <Link
-              href="/effects"
-              className="text-blue-600 hover:text-blue-800 transition-colors"
-            >
-              エフェクター管理
-            </Link>
-            <Link
-              href="/boards"
-              className="text-green-600 hover:text-green-800 transition-colors"
-            >
-              ペダルボード管理
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   );

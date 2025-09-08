@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Settings } from 'lucide-react';
 import Link from 'next/link';
@@ -19,6 +19,20 @@ export default function EditLayoutPage() {
   const [effects, setEffects] = useState<Effect[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+
+  // エフェクター一覧を再取得する関数
+  const refreshEffects = useCallback(async () => {
+    try {
+      const userId = getUserId();
+      const response = await fetch(`/api/effects?userId=${userId}`);
+      if (response.ok) {
+        const updatedEffects = await response.json();
+        setEffects(updatedEffects);
+      }
+    } catch (error) {
+      console.error('エフェクター更新エラー:', error);
+    }
+  }, []);
 
   // レイアウト・関連データ取得
   useEffect(() => {
@@ -82,8 +96,11 @@ export default function EditLayoutPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...updatedLayout,
           userId,
+          name: updatedLayout.name,
+          layoutData: updatedLayout.layout_data,
+          signalChainMemo: updatedLayout.signal_chain_memo,
+          generalMemo: updatedLayout.general_memo,
         }),
       });
 
@@ -94,11 +111,9 @@ export default function EditLayoutPage() {
       const savedLayout = await response.json();
       setLayout(savedLayout);
       
-      // 成功メッセージ（簡易実装）
-      alert('レイアウトを保存しました！');
+      addToast('レイアウトを保存しました！', 'success');
     } catch {
-      addToast('保存に失敗しました', 'error');
-      alert('レイアウトの保存に失敗しました');
+      addToast('レイアウトの保存に失敗しました', 'error');
     }
   };
 
@@ -192,6 +207,7 @@ export default function EditLayoutPage() {
             board={board}
             effects={effects}
             onSave={handleSaveLayout}
+            onEffectsUpdate={refreshEffects}
           />
         </div>
 

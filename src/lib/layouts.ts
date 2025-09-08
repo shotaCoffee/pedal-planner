@@ -62,7 +62,7 @@ export async function deleteLayout(id: string, userId: string): Promise<boolean>
     'DELETE FROM layouts WHERE id = $1 AND user_id = $2',
     [id, userId]
   );
-  return result.rowCount > 0;
+  return (result.rowCount ?? 0) > 0;
 }
 
 // ボード別レイアウト一覧取得

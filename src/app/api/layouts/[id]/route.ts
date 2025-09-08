@@ -5,15 +5,20 @@ import { LayoutData } from '../../../../types';
 // PUT /api/layouts/[id] - レイアウト更新
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json();
     const { userId, name, layoutData, signalChainMemo, generalMemo } = body;
-    const layoutId = params.id;
+    const resolvedParams = await params;
+    const layoutId = resolvedParams.id;
 
     if (!userId || !layoutId) {
       return NextResponse.json({ error: 'userId and layoutId are required' }, { status: 400 });
+    }
+
+    if (!layoutData) {
+      return NextResponse.json({ error: 'layoutData is required' }, { status: 400 });
     }
 
     const updatedLayout = await updateLayout(
@@ -31,6 +36,10 @@ export async function PUT(
       return NextResponse.json({ error: 'Layout not found or update failed' }, { status: 404 });
     }
   } catch (error) {
-    throw new Error(`Failed to update layout: ${error instanceof Error ? error.message : String(error)}`);
+    console.error('Layout update error:', error);
+    return NextResponse.json(
+      { error: `Failed to update layout: ${error instanceof Error ? error.message : String(error)}` },
+      { status: 500 }
+    );
   }
 }

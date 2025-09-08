@@ -33,7 +33,6 @@ export default function NewLayoutPage() {
         setBoards(boardsData);
       } catch {
         addToast('ペダルボード取得に失敗しました', 'error');
-        alert('ペダルボード取得に失敗しました');
       } finally {
         setLoading(false);
       }
@@ -47,7 +46,7 @@ export default function NewLayoutPage() {
     e.preventDefault();
     
     if (!selectedBoardId || !layoutName.trim()) {
-      alert('ペダルボードとレイアウト名を選択・入力してください');
+      addToast('ペダルボードとレイアウト名を選択・入力してください', 'error');
       return;
     }
 
@@ -81,11 +80,12 @@ export default function NewLayoutPage() {
 
       const newLayout = await response.json();
       
+      addToast(`「${newLayout.name}」を作成しました`, 'success');
+      
       // レイアウト編集ページにリダイレクト
       router.push(`/layouts/${newLayout.id}`);
     } catch {
       addToast('レイアウト作成に失敗しました', 'error');
-      alert('レイアウト作成に失敗しました');
     } finally {
       setSaving(false);
     }

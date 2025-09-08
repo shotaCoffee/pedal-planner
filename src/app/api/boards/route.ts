@@ -80,7 +80,7 @@ export async function DELETE(request: NextRequest) {
       'DELETE FROM boards WHERE id = $1 AND user_id = $2',
       [id, userId]
     );
-    const success = result.rowCount > 0;
+    const success = (result.rowCount ?? 0) > 0;
     
     if (success) {
       return NextResponse.json({ success: true });

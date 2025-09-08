@@ -51,8 +51,15 @@ export function snapToGridEnhanced(
   if (isValid) {
     return { x: snappedX, y: snappedY, snapped: true };
   } else {
-    // スナップできない場合は元の座標を返す
-    return { x, y, snapped: false };
+    // スナップできない場合は元の座標も境界チェックして制限
+    const isRotated = rotation === 90 || rotation === 270;
+    const actualWidth = isRotated ? effectSize.height : effectSize.width;
+    const actualHeight = isRotated ? effectSize.width : effectSize.height;
+    
+    const clampedX = Math.max(0, Math.min(x, boardSize.width - actualWidth));
+    const clampedY = Math.max(0, Math.min(y, boardSize.height - actualHeight));
+    
+    return { x: clampedX, y: clampedY, snapped: false };
   }
 }
 
@@ -179,4 +186,26 @@ export function centerEffect(
     x: (boardWidthMm - actualWidth) / 2,
     y: (boardHeightMm - actualHeight) / 2
   };
+}
+
+// 回転を考慮したより柔軟な境界クランプ関数
+export function clampToBoundsWithRotation(
+  x: number,
+  y: number,
+  effectWidthMm: number,
+  effectHeightMm: number,
+  boardWidthMm: number,
+  boardHeightMm: number,
+  rotation: number = 0
+): { x: number; y: number } {
+  // 回転を考慮した実際のサイズを計算
+  const isRotated = rotation === 90 || rotation === 270;
+  const actualWidth = isRotated ? effectHeightMm : effectWidthMm;
+  const actualHeight = isRotated ? effectWidthMm : effectHeightMm;
+  
+  // 境界内にクランプ
+  const clampedX = Math.max(0, Math.min(x, boardWidthMm - actualWidth));
+  const clampedY = Math.max(0, Math.min(y, boardHeightMm - actualHeight));
+  
+  return { x: clampedX, y: clampedY };
 }

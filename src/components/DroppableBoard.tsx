@@ -12,6 +12,7 @@ interface DroppableBoardProps {
   selectedEffectId: string;
   onEffectSelect: (effectId: string) => void;
   onEffectPositionUpdate: (effectId: string, x: number, y: number) => void;
+  onEffectRotate?: (effectId: string) => void;
   onEffectDrop?: (effectId: string, x: number, y: number) => void;
 }
 
@@ -23,6 +24,7 @@ export default function DroppableBoard({
   selectedEffectId,
   onEffectSelect,
   onEffectPositionUpdate,
+  onEffectRotate,
   ...props
 }: DroppableBoardProps) {
   const { isOver, setNodeRef } = useDroppable({
@@ -51,6 +53,7 @@ export default function DroppableBoard({
         selectedEffectId={selectedEffectId}
         onEffectSelect={onEffectSelect}
         onEffectPositionUpdate={onEffectPositionUpdate}
+        onEffectRotate={onEffectRotate}
         {...props}
       />
       

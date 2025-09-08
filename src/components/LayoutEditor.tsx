@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Save, ZoomIn, ZoomOut, Grid3x3, Menu, X, HelpCircle } from 'lucide-react';
+import { Save, ZoomIn, ZoomOut, Grid3x3, Menu, X, HelpCircle, Plus } from 'lucide-react';
 import {
   DndContext,
   DragEndEvent,
@@ -16,14 +16,16 @@ import {
 import { Layout, Board, Effect, LayoutData, EffectPosition } from '../types';
 import DroppableBoard from './DroppableBoard';
 import DraggableEffect from './DraggableEffect';
-import { snapToGridEnhanced } from '../lib/coordinates';
+import { snapToGridEnhanced, clampToBoundsWithRotation } from '../lib/coordinates';
 import { useToast } from './Toast';
+import { getUserId } from '../lib/auth';
 
 interface LayoutEditorProps {
   layout: Layout;
   board: Board;
   effects: Effect[];
   onSave: (updatedLayout: Layout) => void;
+  onEffectsUpdate?: () => void;
 }
 
 export default function LayoutEditor({
@@ -31,6 +33,7 @@ export default function LayoutEditor({
   board,
   effects,
   onSave,
+  onEffectsUpdate,
 }: LayoutEditorProps) {
   const { addToast } = useToast();
   const [currentLayoutData, setCurrentLayoutData] = useState<LayoutData>(layout.layout_data);
@@ -43,6 +46,13 @@ export default function LayoutEditor({
   const [gridSize, setGridSize] = useState<number>(5); // 1, 5, 10mm
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState<boolean>(false);
+  const [showAddEffectForm, setShowAddEffectForm] = useState<boolean>(false);
+  const [newEffectForm, setNewEffectForm] = useState({
+    name: '',
+    width_mm: '',
+    height_mm: '',
+    memo: '',
+  });
 
   // @dnd-kit sensors setup with touch optimization
   const sensors = useSensors(
@@ -67,7 +77,7 @@ export default function LayoutEditor({
     // 既に配置されているかチェック
     const alreadyPlaced = currentLayoutData.effects.find(e => e.effect_id === effectId);
     if (alreadyPlaced) {
-      alert('このエフェクターは既に配置されています');
+      addToast('このエフェクターは既に配置されています', 'warning');
       return;
     }
 
@@ -86,7 +96,7 @@ export default function LayoutEditor({
       ...prev,
       effects: [...prev.effects, newEffectPosition]
     }));
-  }, [effects, board, currentLayoutData]);
+  }, [effects, board, currentLayoutData, addToast]);
 
   // エフェクター削除ハンドラ
   const handleRemoveEffect = useCallback((effectId: string) => {
@@ -120,6 +130,86 @@ export default function LayoutEditor({
         return e;
       })
     }));
+  }, []);
+
+  // 新しいエフェクター追加ハンドラ
+  const handleCreateAndAddEffect = useCallback(async () => {
+    if (!newEffectForm.name.trim() || !newEffectForm.width_mm || !newEffectForm.height_mm) {
+      addToast('名前、幅、高さは必須項目です', 'error');
+      return;
+    }
+
+    try {
+      const userId = getUserId();
+      
+      // 新しいエフェクターをAPIで作成
+      const response = await fetch('/api/effects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          name: newEffectForm.name.trim(),
+          width_mm: parseInt(newEffectForm.width_mm),
+          height_mm: parseInt(newEffectForm.height_mm),
+          memo: newEffectForm.memo.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('エフェクターの作成に失敗しました');
+      }
+
+      const newEffect = await response.json();
+      
+      // ボードの中央に配置
+      const centerX = Math.max(0, board.width_mm / 2 - newEffect.width_mm / 2);
+      const centerY = Math.max(0, board.height_mm / 2 - newEffect.height_mm / 2);
+
+      const newEffectPosition: EffectPosition = {
+        effect_id: newEffect.id,
+        x: centerX,
+        y: centerY,
+        rotation: 0,
+      };
+
+      // レイアウトに追加
+      setCurrentLayoutData(prev => ({
+        ...prev,
+        effects: [...prev.effects, newEffectPosition]
+      }));
+
+      // フォームをリセット
+      setNewEffectForm({
+        name: '',
+        width_mm: '',
+        height_mm: '',
+        memo: '',
+      });
+      setShowAddEffectForm(false);
+
+      addToast(`${newEffect.name} を追加してレイアウトに配置しました`, 'success');
+      
+      // 親コンポーネントのeffectsを更新
+      if (onEffectsUpdate) {
+        onEffectsUpdate();
+      }
+    } catch (error) {
+      console.error('エフェクター追加エラー:', error);
+      addToast('エフェクターの追加に失敗しました', 'error');
+    }
+  }, [newEffectForm, board, addToast, onEffectsUpdate]);
+
+  // フォームリセット
+  const handleResetForm = useCallback(() => {
+    setNewEffectForm({
+      name: '',
+      width_mm: '',
+      height_mm: '',
+      memo: '',
+    });
+    setShowAddEffectForm(false);
   }, []);
 
   // ズーム操作
@@ -193,15 +283,21 @@ export default function LayoutEditor({
               newX = snapped.x;
               newY = snapped.y;
             } else {
-              // スナップなしの場合は手動境界チェック
-              newX = Math.max(0, Math.min(
-                board.width_mm - effect.width_mm, 
-                newX
-              ));
-              newY = Math.max(0, Math.min(
-                board.height_mm - effect.height_mm,
-                newY
-              ));
+              // スナップなしの場合も回転を考慮した適切な境界クランプを実装
+              const rotation = currentPosition.rotation || 0;
+              
+              // より柔軟な境界クランプ関数を使用
+              const clamped = clampToBoundsWithRotation(
+                newX, 
+                newY, 
+                effect.width_mm, 
+                effect.height_mm, 
+                board.width_mm, 
+                board.height_mm, 
+                rotation
+              );
+              newX = clamped.x;
+              newY = clamped.y;
             }
             
             handleEffectPositionUpdate(effectId, newX, newY);
@@ -476,6 +572,93 @@ export default function LayoutEditor({
 
         {/* エフェクター一覧 */}
         <div className="flex-1 overflow-y-auto">
+          {/* エフェクター追加ボタン */}
+          <div className="p-4 border-b border-gray-200">
+            <button
+              onClick={() => setShowAddEffectForm(!showAddEffectForm)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+            >
+              <Plus size={16} />
+              新しいエフェクターを追加
+            </button>
+          </div>
+
+          {/* エフェクター追加フォーム */}
+          {showAddEffectForm && (
+            <div className="p-4 bg-green-50 border-b border-gray-200">
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">新しいエフェクター</h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    名前 *
+                  </label>
+                  <input
+                    type="text"
+                    value={newEffectForm.name}
+                    onChange={(e) => setNewEffectForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500 text-gray-900"
+                    placeholder="エフェクター名"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      幅 (mm) *
+                    </label>
+                    <input
+                      type="number"
+                      value={newEffectForm.width_mm}
+                      onChange={(e) => setNewEffectForm(prev => ({ ...prev, width_mm: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500 text-gray-900"
+                      placeholder="60"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      高さ (mm) *
+                    </label>
+                    <input
+                      type="number"
+                      value={newEffectForm.height_mm}
+                      onChange={(e) => setNewEffectForm(prev => ({ ...prev, height_mm: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500 text-gray-900"
+                      placeholder="120"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    メモ
+                  </label>
+                  <textarea
+                    value={newEffectForm.memo}
+                    onChange={(e) => setNewEffectForm(prev => ({ ...prev, memo: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500 text-gray-900"
+                    rows={2}
+                    placeholder="エフェクターについてのメモ"
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCreateAndAddEffect}
+                    className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors"
+                  >
+                    追加して配置
+                  </button>
+                  <button
+                    onClick={handleResetForm}
+                    className="px-3 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 text-sm rounded-lg transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 未配置エフェクター */}
           <div className="p-4">
             <h4 className="text-sm font-semibold text-gray-900 mb-3">
@@ -631,6 +814,7 @@ export default function LayoutEditor({
               selectedEffectId={selectedEffectId}
               onEffectSelect={handleEffectSelect}
               onEffectPositionUpdate={handleEffectPositionUpdate}
+              onEffectRotate={handleEffectRotate}
             />
           </div>
         </div>

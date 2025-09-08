@@ -11,6 +11,7 @@ interface BoardCanvasProps {
   selectedEffectId: string;
   onEffectSelect: (effectId: string) => void;
   onEffectPositionUpdate: (effectId: string, x: number, y: number) => void;
+  onEffectRotate?: (effectId: string) => void;
 }
 
 // 定数
@@ -25,6 +26,7 @@ export default function BoardCanvas({
   selectedEffectId,
   onEffectSelect,
   onEffectPositionUpdate,
+  onEffectRotate,
 }: BoardCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -34,6 +36,10 @@ export default function BoardCanvas({
     offsetX: number;
     offsetY: number;
   } | null>(null);
+  
+  // ダブルクリック用のstate
+  const [lastClickTime, setLastClickTime] = useState<number>(0);
+  const [lastClickedEffect, setLastClickedEffect] = useState<string>('');
 
   // mm to px 変換 - メモ化で最適化
   const mmToPx = useCallback((mm: number) => mm * MM_TO_PX_RATIO * scale, [scale]);
@@ -103,12 +109,27 @@ export default function BoardCanvas({
       ctx.setLineDash([]); // 破線リセット
     }
 
-      // エフェクター描画 - 最適化されたレンダリング
+      // エフェクター描画 - 回転に対応した最適化されたレンダリング
       effects.forEach((effect) => {
       const x = mmToPx(effect.position.x);
       const y = mmToPx(effect.position.y);
       const width = mmToPx(effect.width_mm);
       const height = mmToPx(effect.height_mm);
+      const rotation = effect.position.rotation || 0;
+
+      // コンテキストの状態を保存
+      ctx.save();
+      
+      // 回転がある場合は変換を適用
+      if (rotation !== 0) {
+        // エフェクターの中心点で回転
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+        
+        ctx.translate(centerX, centerY);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.translate(-centerX, -centerY);
+      }
 
       // エフェクター本体
       const isSelected = effect.id === selectedEffectId;
@@ -140,6 +161,9 @@ export default function BoardCanvas({
       }
       
         ctx.fillText(displayName, x + width / 2, y + height / 2);
+        
+        // コンテキストの状態を復元
+        ctx.restore();
       });
 
       // ボードサイズ表示
@@ -150,6 +174,45 @@ export default function BoardCanvas({
       ctx.fillText(`${board.name} (${board.width_mm} × ${board.height_mm} mm)`, 10, 10);
     });
   }, [board, effects, showGrid, selectedEffectId, mmToPx, canvasSize]);
+
+  // 回転を考慮したポイント内判定関数
+  const isPointInRotatedRect = useCallback((
+    pointX: number, 
+    pointY: number, 
+    rectX: number, 
+    rectY: number, 
+    rectWidth: number, 
+    rectHeight: number, 
+    rotation: number
+  ) => {
+    if (rotation === 0) {
+      // 回転なしの場合は通常の矩形判定
+      return pointX >= rectX && pointX <= rectX + rectWidth && 
+             pointY >= rectY && pointY <= rectY + rectHeight;
+    }
+
+    // 回転がある場合は逆回転を適用してポイントを変換
+    const centerX = rectX + rectWidth / 2;
+    const centerY = rectY + rectHeight / 2;
+    
+    // ポイントを中心点に対して逆回転
+    const radians = (-rotation * Math.PI) / 180;
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+    
+    const translatedX = pointX - centerX;
+    const translatedY = pointY - centerY;
+    
+    const rotatedX = translatedX * cos - translatedY * sin;
+    const rotatedY = translatedX * sin + translatedY * cos;
+    
+    const finalX = rotatedX + centerX;
+    const finalY = rotatedY + centerY;
+    
+    // 変換後のポイントで矩形判定
+    return finalX >= rectX && finalX <= rectX + rectWidth && 
+           finalY >= rectY && finalY <= rectY + rectHeight;
+  }, []);
 
   // マウスイベント処理
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -167,17 +230,49 @@ export default function BoardCanvas({
       const effectY = mmToPx(effect.position.y);
       const effectWidth = mmToPx(effect.width_mm);
       const effectHeight = mmToPx(effect.height_mm);
+      const rotation = effect.position.rotation || 0;
 
-      if (x >= effectX && x <= effectX + effectWidth && 
-          y >= effectY && y <= effectY + effectHeight) {
+      if (isPointInRotatedRect(x, y, effectX, effectY, effectWidth, effectHeight, rotation)) {
+        // ダブルクリック判定
+        const currentTime = Date.now();
+        const isDoubleClick = currentTime - lastClickTime < 300 && lastClickedEffect === effect.id;
         
+        if (isDoubleClick && onEffectRotate) {
+          // ダブルクリックで回転
+          onEffectRotate(effect.id);
+          setLastClickTime(0);
+          setLastClickedEffect('');
+          return;
+        }
+        
+        // シングルクリック時の処理
+        setLastClickTime(currentTime);
+        setLastClickedEffect(effect.id);
         onEffectSelect(effect.id);
         
-        // ドラッグ開始
+        // ドラッグ開始（回転を考慮したオフセット計算）
+        let offsetX = x - effectX;
+        let offsetY = y - effectY;
+        
+        if (rotation !== 0) {
+          // 回転がある場合はオフセットも逆回転で補正
+          const centerX = effectWidth / 2;
+          const centerY = effectHeight / 2;
+          const radians = (-rotation * Math.PI) / 180;
+          const cos = Math.cos(radians);
+          const sin = Math.sin(radians);
+          
+          const translatedX = offsetX - centerX;
+          const translatedY = offsetY - centerY;
+          
+          offsetX = translatedX * cos - translatedY * sin + centerX;
+          offsetY = translatedX * sin + translatedY * cos + centerY;
+        }
+        
         setDragging({
           effectId: effect.id,
-          offsetX: x - effectX,
-          offsetY: y - effectY,
+          offsetX: offsetX,
+          offsetY: offsetY,
         });
         
         return;
@@ -186,7 +281,7 @@ export default function BoardCanvas({
 
     // エフェクター以外をクリックした場合は選択解除
     onEffectSelect('');
-  }, [effects, mmToPx, onEffectSelect]);
+  }, [effects, mmToPx, onEffectSelect, isPointInRotatedRect, lastClickTime, lastClickedEffect, onEffectRotate]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!dragging) return;
@@ -202,12 +297,18 @@ export default function BoardCanvas({
     const newX = pxToMm(x - dragging.offsetX);
     const newY = pxToMm(y - dragging.offsetY);
 
-    // 境界チェック
+    // 境界チェック（回転を考慮した適切なクランプ処理）
     const effect = effects.find(e => e.id === dragging.effectId);
     if (!effect) return;
 
-    const clampedX = Math.max(0, Math.min(newX, board.width_mm - effect.width_mm));
-    const clampedY = Math.max(0, Math.min(newY, board.height_mm - effect.height_mm));
+    const rotation = effect.position.rotation || 0;
+    const isRotated = rotation === 90 || rotation === 270;
+    const actualWidth = isRotated ? effect.height_mm : effect.width_mm;
+    const actualHeight = isRotated ? effect.width_mm : effect.height_mm;
+    
+    // 常に境界内に収まるようにクランプ
+    const clampedX = Math.max(0, Math.min(newX, board.width_mm - actualWidth));
+    const clampedY = Math.max(0, Math.min(newY, board.height_mm - actualHeight));
 
     onEffectPositionUpdate(dragging.effectId, clampedX, clampedY);
   }, [dragging, effects, board, pxToMm, onEffectPositionUpdate]);
